@@ -1,0 +1,6 @@
+/artifacts/
+*.egg-info/
+__pycache__/
+.ipynb_checkpoints/
+/venv/
+/.venv/

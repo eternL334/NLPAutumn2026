@@ -1,0 +1,4 @@
+-r common.txt
+torch==2.8.0
+# Official Python 3.12 / Linux x86_64 / CUDA 12 / torch 2.8 / CXX11 ABI wheel.
+https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post2/flash_attn-2.8.3.post2+cu12torch2.8cxx11abiTRUE-cp312-cp312-linux_x86_64.whl

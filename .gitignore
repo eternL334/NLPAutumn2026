@@ -1,0 +1,10 @@
+venv
+/AGENTS.md
+/fineweb2_raw/
+/task1/artifacts/
+__pycache__/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+.venv/

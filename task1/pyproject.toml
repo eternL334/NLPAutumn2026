@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monolm"
+version = "0.1.0"
+description = "Bulgarian decoder-only language model trained from scratch"
+requires-python = ">=3.12,<3.13"
+
+[project.scripts]
+monolm = "src.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
