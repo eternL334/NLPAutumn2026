@@ -4,6 +4,48 @@
 
 Модель: 346 096 576 параметров, 32 слоя, hidden 960, FFN 2560, GQA 15/5, RMSNorm + QK-Norm, SwiGLU, RoPE, контекст 2048, связанные embeddings, BPE-32768. `Qwen3ForCausalLM` используется как реализация архитектуры; все веса создаются случайно.
 
+## Быстрая проверка модели и результатов
+
+- [Веса и токенизатор на Hugging Face](https://huggingface.co/eternl/monolm-346m-bg) — checkpoint шага 5000.
+- [Отдельный ноутбук инференса](notebooks/inference.ipynb) — загружает модель с HF и содержит выполненные примеры на CPU. Его можно скачать и выполнить в Jupyter или Colab; исходный корпус и пакет `src` ему не нужны.
+- [Выполненный бенчмарк](notebooks/evaluation.ipynb) — таблицы, графики, рубрика LLM-judge и примеры ответов доступны при просмотре ноутбука. Краткие результаты приведены [ниже](#бенчмарк-генерации).
+- [Графики обучения Trackio](https://huggingface.co/spaces/eternl/monolm-training) — группа `monolm-346m`.
+
+Код и отчёты находятся в этом Git-репозитории. Для инференса достаточно Python 3.12 и следующих библиотек; Flash Attention не требуется:
+
+```bash
+python -m pip install 'torch>=2.6' 'transformers==5.20.2' 'tokenizers==0.23.3' 'huggingface-hub==2.2.0' 'safetensors==0.8.0'
+```
+
+Выполните следующий Python-код. Он работает на CPU или CUDA и скачивает публичную модель без токена; первая загрузка весов — около 1,38 ГБ.
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+repo = "eternl/monolm-346m-bg"
+revision = "b75dfb5da41fe98b1fb669a878eb662389deb199"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = (torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16) if device == "cuda" else torch.float32
+tokenizer = AutoTokenizer.from_pretrained(repo, revision=revision, token=False, local_files_only=False)
+model = AutoModelForCausalLM.from_pretrained(
+    repo, revision=revision, token=False, dtype=dtype, attn_implementation="sdpa"
+).to(device).eval()
+
+prompt = "Момичето отвори прозореца и"
+inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(device)
+torch.manual_seed(42)
+with torch.inference_mode():
+    output = model.generate(
+        **inputs, max_new_tokens=64, do_sample=True,
+        temperature=0.8, top_p=0.95, top_k=0, use_cache=True,
+        pad_token_id=0, eos_token_id=3, suppress_tokens=[0, 1, 2],
+    )
+print(prompt + tokenizer.decode(output[0, inputs.input_ids.shape[1]:], skip_special_tokens=True))
+```
+
+Это pretrain-модель продолжения текста без chat template. Меняйте `prompt` на начало болгарского текста; суммарная длина входа и продолжения должна помещаться в 2048 токенов. Связность и ответы на вопросы пока ограничены — измерения приведены в бенчмарке.
+
 ## С нуля на L40
 
 Нужны **Linux x86_64, Python 3.12, L40 и драйвер с поддержкой CUDA 12.8**. Ориентир: 32 ГБ RAM и 100 ГБ свободного диска; около 200 ГБ, если также воспроизводить сравнение с raw FineWeb-2. Подготовка данных не входит в суточный бюджет обучения.
@@ -152,7 +194,7 @@ bash scripts/train.sh --resume artifacts/training/runs/monolm-346m/checkpoints/l
 
 Оценки выполняются тремя слепыми подагентами вне Python-процесса: пакеты по 10 ответов, 40 повторных оценок и шесть контролей каждому судье. API-ключ не требуется. Сохранённые оценки воспроизводят таблицы отчёта; повторное получение самих оценок требует внешнего оценщика. Продолжения и QA оцениваются раздельно; «минимально приемлемо» — мягкий порог, не утверждение о безошибочной или фактически достоверной речи. Qwen отличается размером и обучающими данными, а оценки подагентов не заменяют носителя языка.
 
-Результаты, полные ответы, контрольные суммы и бюджет — в `artifacts/evaluation/bg-mini-v1/`. Ноутбук [evaluation.ipynb](notebooks/evaluation.ipynb) читает эти артефакты и не запускает модели повторно.
+Ноутбук [evaluation.ipynb](notebooks/evaluation.ipynb) сохранён с выполненными ячейками, графиками и примерами — его результаты можно посмотреть прямо в Git. Для повторного вычисления ячеек нужны локальные артефакты `artifacts/evaluation/bg-mini-v1/`, исключённые из Git. Ноутбук читает их и не запускает модели повторно.
 
 Измеренный результат шага 5000:
 
