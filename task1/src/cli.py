@@ -17,6 +17,7 @@ COMMANDS = {
     "doctor": "Inspect the environment; --cuda also checks Flash Attention backward",
     "stats": "Prepare three uniform samples and compute inexpensive corpus statistics",
     "audit": "Prepare blind packets or aggregate externally supplied assessments",
+    "evaluate": "Prepare, generate, judge packets and summarize the Bulgarian benchmark",
 }
 
 
@@ -29,9 +30,9 @@ def main():
     command, arguments = sys.argv[1], sys.argv[2:]
     if command not in COMMANDS:
         parser.error(f"Unknown command: {command}")
-    if command in {"download", "tokenizer", "infer", "doctor"}:
+    if command in {"download", "tokenizer", "infer", "doctor", "evaluate"}:
         module = {"download": "data.download", "tokenizer": "tokenization.experiments",
-                  "infer": "inference", "doctor": "environment"}[command]
+                  "infer": "inference", "doctor": "environment", "evaluate": "evaluation.benchmark"}[command]
         sys.argv = [f"monolm {command}", *arguments]
         importlib.import_module(f"src.{module}").main()
     elif command in {"tokenize", "check", "benchmark", "train", "export"}:
